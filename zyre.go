@@ -18,6 +18,7 @@ import "C"
 
 import (
 	"fmt"
+    "unsafe"
 )
 
 // ZyreEvent - type of even in zyre peer to peer network
@@ -133,7 +134,55 @@ func (z *Zyre) Recv() (m Message, err error) {
 		err = fmt.Errorf("Zyre.Recv: got nil")
 		return
 	}
-	//TODO:
-	err = fmt.Errorf("Zyre.Recv: not yet implemented")
+    defer C.zmsg_destroy(&msg)
+
+    cevent := C.zmsg_popstr(msg)
+    if cevent == nil {
+        err = fmt.Errorf("Zyre.Recv: got nil event")
+        return
+    }
+    event := ZyreEvent(C.GoString(cevent))
+    defer C.free(unsafe.Pointer(cevent))
+
+    cpeer := C.zmsg_popstr(msg)
+    if cpeer == nil {
+        err = fmt.Errorf("Zyre.Recv: got nil peer")
+        return
+    }
+    peer := C.GoString(cpeer)
+    defer C.free(unsafe.Pointer(cpeer))
+
+    cname := C.zmsg_popstr(msg)
+    if cname == nil {
+        err = fmt.Errorf("Zyre.Recv: got nil name")
+        return
+    }
+    name := C.GoString(cname)
+    defer C.free(unsafe.Pointer(cname))
+
+    cgroup := C.zmsg_popstr(msg)
+    if cgroup == nil {
+        err = fmt.Errorf("Zyre.Recv: got nil group")
+        return
+    }
+    group := C.GoString(cgroup)
+    defer C.free(unsafe.Pointer(cgroup))
+
+    var message string
+    cmessage := C.zmsg_popstr(msg)
+    if cmessage == nil {
+        message = ""
+    } else {
+        message = C.GoString(cmessage)
+        defer C.free(unsafe.Pointer(cmessage))
+    }
+
+    m = Message{
+        Event: event,
+        Peer: peer,
+        Name: name,
+        Group: group,
+        Message: message,
+    }
 	return
 }
