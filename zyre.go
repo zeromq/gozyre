@@ -9,11 +9,16 @@ package zyre
 //int _zyre_shouts(zyre_t *self, const char *group, const char *value) {
 //	return zyre_shouts(self, group, value);
 //}
-// void _zyre_print(zyre_t *self) {
-//        zmsg_t *msg = zyre_recv(self);
-//        zmsg_print(msg);
-//        zmsg_destroy (&msg);
-// }
+//const char *zhash_firsts(zhash_t *hash) {
+//   return (const char*)zhash_first(hash);
+//}
+//const char *zhash_nexts(zhash_t *hash) {
+//   return (const char*)zhash_next(hash);
+//}
+//const char *zhash_cursors(zhash_t *hash) {
+//   return (const char*)zhash_cursor(hash);
+//}
+//
 import "C"
 
 import (
@@ -21,29 +26,52 @@ import (
     "unsafe"
 )
 
-// ZyreEvent - type of even in zyre peer to peer network
-type ZyreEvent string
-const (
-	Enter ZyreEvent = "ENTER"
-	Exit  ZyreEvent = "EXIT"
-	Join  ZyreEvent = "JOIN"
-	Leave  ZyreEvent = "LEAVE"
-	Shout ZyreEvent = "SHOUT"
-	Evasive ZyreEvent = "EVASIVE"
-)
-
 // Zyre - opaque Golang struct wrapping `zyre_t*`
 type Zyre struct {
 	ptr *C.zyre_t
 }
 
-// Message - received zyre message
-type Message struct {
-	Event ZyreEvent
-	Peer  string
-	Name  string
-	Group string
-	Message string
+// returned messages from zyre
+type Enter struct {
+    Peer string
+    Name string
+    Headers map[string]string
+    Endpoint string
+}
+
+type Evasive struct {
+    Peer string
+    Name string
+}
+
+type Exit struct {
+    Peer string
+    Name string
+}
+
+type Join struct {
+    Peer string
+    Name string
+    Group string
+}
+
+type Leave struct {
+    Peer string
+    Name string
+    Group string
+}
+
+type Whisper struct {
+    Peer string
+    Name string
+    Message [][]byte
+}
+
+type Shout struct {
+    Peer string
+    Name string
+    Group string
+    Message [][]byte
 }
 
 // New - creates a new Zyre node. Note that until you start the
@@ -61,6 +89,13 @@ func (z *Zyre) Destroy() {
 	}
 	C.zyre_destroy(&z.ptr)
 	z.ptr = nil
+}
+
+func (z *Zyre) SetVerbose() {
+	if z.ptr == nil {
+		panic("Zyre.SetVerbose: z.ptr is null")
+	}
+	C.zyre_set_verbose(z.ptr)
 }
 
 // UUID - Return our node UUID string, after successful initialization
@@ -98,6 +133,18 @@ func (z *Zyre) Join(room string) error {
 	return nil
 }
 
+// Leave a group
+func (z *Zyre) Leave(room string) error {
+	if z.ptr == nil {
+		panic("Zyre.Leave: z.ptr is null")
+	}
+	rc := C.zyre_leave(z.ptr, C.CString(room))
+	if rc == -1 {
+		return fmt.Errorf("Zyre.Leave failed, returned -1")
+	}
+	return nil
+}
+
 // Stop node; this signals to other peers that this node will go away.
 // This is polite; however you can also just destroy the node without
 // stopping it.
@@ -125,7 +172,7 @@ func (z *Zyre) Shouts(group string, format string, a ...interface{}) error {
 }
 
 // Recv - return zyre message or an error
-func (z *Zyre) Recv() (m Message, err error) {
+func (z *Zyre) Recv() (m interface{}, err error) {
 	if z.ptr == nil {
 		panic("Zyre.Recv: z.ptr is null")
 	}
@@ -141,12 +188,34 @@ func (z *Zyre) Recv() (m Message, err error) {
         err = fmt.Errorf("Zyre.Recv: got nil event")
         return
     }
-    event := ZyreEvent(C.GoString(cevent))
+    event := C.GoString(cevent)
     defer C.free(unsafe.Pointer(cevent))
 
+    switch event {
+    case "ENTER":
+        return recvEnter(msg)
+    case "EVASIVE":
+        return recvEvasive(msg)
+    case "EXIT":
+        return recvExit(msg)
+    case "JOIN":
+        return recvJoin(msg)
+    case "LEAVE":
+        return recvLeave(msg)
+    case "WHISPER":
+        return recvWhisper(msg)
+    case "SHOUT":
+        return recvShout(msg)
+    default:
+        err = fmt.Errorf("ZyreRecv: uknown event '%s'", event)
+        return
+    }
+}
+
+func recvEnter(msg *C.zmsg_t) (m Enter, err error) {
     cpeer := C.zmsg_popstr(msg)
     if cpeer == nil {
-        err = fmt.Errorf("Zyre.Recv: got nil peer")
+        err = fmt.Errorf("Zyre.Recv: ENTER got nil peer")
         return
     }
     peer := C.GoString(cpeer)
@@ -154,7 +223,109 @@ func (z *Zyre) Recv() (m Message, err error) {
 
     cname := C.zmsg_popstr(msg)
     if cname == nil {
-        err = fmt.Errorf("Zyre.Recv: got nil name")
+        err = fmt.Errorf("Zyre.Recv: ENTER got nil name")
+        return
+    }
+    name := C.GoString(cname)
+    defer C.free(unsafe.Pointer(cname))
+
+    cheaders := C.zmsg_pop(msg)
+    if cheaders == nil {
+        err = fmt.Errorf("Zyre.Recv: ENTER got nil headers")
+        return
+    }
+    defer C.free(unsafe.Pointer(cheaders))
+    chash := C.zhash_unpack(cheaders)
+    if chash == nil {
+        err = fmt.Errorf("Zyre.Recv: ENTER headers unpack failed")
+        return
+    }
+    defer C.zhash_destroy(&chash)
+    headers := make(map[string]string)
+    value := C.zhash_firsts(chash)
+    for ;value != nil; {
+        key := C.zhash_cursors(chash)
+        headers[C.GoString(key)] = C.GoString(value)
+        value = C.zhash_nexts(chash)
+    }
+
+    cip := C.zmsg_popstr(msg)
+    if cip == nil {
+        err = fmt.Errorf("Zyre.Recv: ENTER got nil ip:port")
+        return
+    }
+    ip := C.GoString(cip)
+    defer C.free(unsafe.Pointer(cip))
+
+    m = Enter{
+        Peer: peer,
+        Name: name,
+        Headers: headers,
+        Endpoint: ip,
+    }
+    return
+}
+
+func recvEvasive(msg *C.zmsg_t) (m Evasive, err error) {
+    cpeer := C.zmsg_popstr(msg)
+    if cpeer == nil {
+        err = fmt.Errorf("Zyre.Recv: EVASIVE got nil peer")
+        return
+    }
+    peer := C.GoString(cpeer)
+    defer C.free(unsafe.Pointer(cpeer))
+
+    cname := C.zmsg_popstr(msg)
+    if cname == nil {
+        err = fmt.Errorf("Zyre.Recv: EVASIVE got nil name")
+        return
+    }
+    name := C.GoString(cname)
+    defer C.free(unsafe.Pointer(cname))
+
+    m = Evasive {
+        Peer: peer,
+        Name: name,
+    }
+    return
+}
+
+func recvExit(msg *C.zmsg_t) (m Exit, err error) {
+    cpeer := C.zmsg_popstr(msg)
+    if cpeer == nil {
+        err = fmt.Errorf("Zyre.Recv: EXIT got nil peer")
+        return
+    }
+    peer := C.GoString(cpeer)
+    defer C.free(unsafe.Pointer(cpeer))
+
+    cname := C.zmsg_popstr(msg)
+    if cname == nil {
+        err = fmt.Errorf("Zyre.Recv: EXIT got nil name")
+        return
+    }
+    name := C.GoString(cname)
+    defer C.free(unsafe.Pointer(cname))
+
+    m = Exit {
+        Peer: peer,
+        Name: name,
+    }
+    return
+}
+
+func recvJoin(msg *C.zmsg_t) (m Join, err error) {
+    cpeer := C.zmsg_popstr(msg)
+    if cpeer == nil {
+        err = fmt.Errorf("Zyre.Recv: JOIN got nil peer")
+        return
+    }
+    peer := C.GoString(cpeer)
+    defer C.free(unsafe.Pointer(cpeer))
+
+    cname := C.zmsg_popstr(msg)
+    if cname == nil {
+        err = fmt.Errorf("Zyre.Recv: JOIN got nil name")
         return
     }
     name := C.GoString(cname)
@@ -162,27 +333,134 @@ func (z *Zyre) Recv() (m Message, err error) {
 
     cgroup := C.zmsg_popstr(msg)
     if cgroup == nil {
-        err = fmt.Errorf("Zyre.Recv: got nil group")
+        err = fmt.Errorf("Zyre.Recv: JOIN got nil group")
         return
     }
     group := C.GoString(cgroup)
     defer C.free(unsafe.Pointer(cgroup))
 
-    var message string
-    cmessage := C.zmsg_popstr(msg)
-    if cmessage == nil {
-        message = ""
-    } else {
-        message = C.GoString(cmessage)
-        defer C.free(unsafe.Pointer(cmessage))
+    m = Join {
+        Peer: peer,
+        Name: name,
+        Group: group,
+    }
+    return
+}
+
+func recvLeave(msg *C.zmsg_t) (m Leave, err error) {
+    cpeer := C.zmsg_popstr(msg)
+    if cpeer == nil {
+        err = fmt.Errorf("Zyre.Recv: LEAVE got nil peer")
+        return
+    }
+    peer := C.GoString(cpeer)
+    defer C.free(unsafe.Pointer(cpeer))
+
+    cname := C.zmsg_popstr(msg)
+    if cname == nil {
+        err = fmt.Errorf("Zyre.Recv: LEAVE got nil name")
+        return
+    }
+    name := C.GoString(cname)
+    defer C.free(unsafe.Pointer(cname))
+
+    cgroup := C.zmsg_popstr(msg)
+    if cgroup == nil {
+        err = fmt.Errorf("Zyre.Recv: LEAVE got nil group")
+        return
+    }
+    group := C.GoString(cgroup)
+    defer C.free(unsafe.Pointer(cgroup))
+
+    m = Leave {
+        Peer: peer,
+        Name: name,
+        Group: group,
+    }
+    return
+}
+
+func recvWhisper(msg *C.zmsg_t) (m Whisper, err error) {
+    cpeer := C.zmsg_popstr(msg)
+    if cpeer == nil {
+        err = fmt.Errorf("Zyre.Recv: WHISPER got nil peer")
+        return
+    }
+    peer := C.GoString(cpeer)
+    defer C.free(unsafe.Pointer(cpeer))
+
+    cname := C.zmsg_popstr(msg)
+    if cname == nil {
+        err = fmt.Errorf("Zyre.Recv: WHISPER got nil name")
+        return
+    }
+    name := C.GoString(cname)
+    defer C.free(unsafe.Pointer(cname))
+
+    message := make([][]byte, C.zmsg_size(msg))
+    i := 0
+    for {
+        p := C.zmsg_pop(msg)
+        if p == nil {
+            break
+        }
+        message[i] = C.GoBytes(
+            unsafe.Pointer(C.zframe_data(p)),
+            C.int(C.zframe_size(p)),
+        )
     }
 
-    m = Message{
-        Event: event,
+    m = Whisper {
+        Peer: peer,
+        Name: name,
+        Message: message,
+    }
+    return
+}
+
+func recvShout(msg *C.zmsg_t) (m Shout, err error) {
+    cpeer := C.zmsg_popstr(msg)
+    if cpeer == nil {
+        err = fmt.Errorf("Zyre.Recv: SHOUT got nil peer")
+        return
+    }
+    peer := C.GoString(cpeer)
+    defer C.free(unsafe.Pointer(cpeer))
+
+    cname := C.zmsg_popstr(msg)
+    if cname == nil {
+        err = fmt.Errorf("Zyre.Recv: SHOUT got nil name")
+        return
+    }
+    name := C.GoString(cname)
+    defer C.free(unsafe.Pointer(cname))
+
+    cgroup := C.zmsg_popstr(msg)
+    if cgroup == nil {
+        err = fmt.Errorf("Zyre.Recv: SHOUT got nil group")
+        return
+    }
+    group := C.GoString(cgroup)
+    defer C.free(unsafe.Pointer(cgroup))
+
+    message := make([][]byte, C.zmsg_size(msg))
+    i := 0
+    for {
+        p := C.zmsg_pop(msg)
+        if p == nil {
+            break
+        }
+        message[i] = C.GoBytes(
+            unsafe.Pointer(C.zframe_data(p)),
+            C.int(C.zframe_size(p)),
+        )
+    }
+
+    m = Shout {
         Peer: peer,
         Name: name,
         Group: group,
         Message: message,
     }
-	return
+    return
 }
