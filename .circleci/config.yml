@@ -40,7 +40,7 @@ jobs: # basic units of work in a run
             trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
             go test | tee ${TEST_RESULTS}/go-test.out
 
-      - run: build # pull and build dependencies for the project
+      - run: go build # pull and build dependencies for the project
 
       - save_cache: # Store cache in the /go/pkg directory
           key: v1-pkg-cache
