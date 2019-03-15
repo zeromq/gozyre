@@ -7,7 +7,7 @@ package zyre
 import (
 	"fmt"
 	"testing"
-	"time"
+    "time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -16,17 +16,21 @@ func TestZyre(t *testing.T) {
 
 	assert := assert.New(t)
 
-	node := New("node")
+	node := New(
+        "node",
+        SetHeader("Service", "name"),
+    )
 	defer node.Destroy()
-	node2 := New("node2")
+	node2 := New(
+        "node2",
+        SetPort(5670),
+    )
 	defer node2.Destroy()
 	if testing.Verbose() {
 		node.SetVerbose()
 		node2.SetVerbose()
 	}
 
-	node.SetHeader("Service", "node")
-	node.SetPort(5670)
 	node.SetEvasiveTimeout(5000 * time.Millisecond)
 	node.SetExpiredTimeout(30000 * time.Millisecond)
 	err := node.Start()
@@ -42,8 +46,8 @@ func TestZyre(t *testing.T) {
 	time.Sleep(250 * time.Millisecond)
 
 	for i := 0; i != 5; i++ {
-		node.Shouts("GROUP", "%d#: SHOUT hello from %s", i, "node")
-		node.Whispers(node2.UUID(), "%d#: WHISPER from %s", i, "node")
+		node.ShoutString("GROUP", "%d#: SHOUT hello from %s", i, "node")
+		node.Whisper(node2.UUID(), []byte(fmt.Sprintf("%d#: WHISPER from %s", i, "node")))
 	}
 	node.Leave("GROUP")
 

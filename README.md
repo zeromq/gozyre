@@ -1,31 +1,15 @@
-[![CircleCI](https://circleci.com/gh/gomoni/gozyre.svg?style=svg)](https://circleci.com/gh/gomoni/gozyre)
+[![CircleCI](https://circleci.com/gh/gomoni/gozyre.svg?style=svg)](https://circleci.com/gh/gomoni/gozyre)[![license](https://img.shields.io/badge/license-MPL-2.0.svg?style=flat)](https://raw.githubusercontent.com/gomoni/gozyre/master/LICENSE)
 
 # Introduction
 A golang interface to the [Zyre v2.0](http://github.com/zeromq/zyre) API.
 
 # Status
 
-1. Most of methods wrapped 1:1
-2. Missing - `zyre_whisper` and `zyre_shout`
-3. Should rename `Shouts` to `ShoutString`
-4. Options can be similear to socket
-```go
-    func NewSock(t int, options ...SockOption) *Sock {
-
-// SockOption is a type for setting options on the underlying ZeroMQ socket
-type SockOption func(*Sock)
-
-// SetOption accepts a SockOption and uses it to set an option on
-// the underlying ZeroMQ socket
-func (s *Sock) SetOption(o SockOption) {
-	o(s)
-}
-
-IOW one should set most interesting stuff at New and then call Start + Join + ...
-```
-5. Examples
-6. Wrap zyre_socket??? - IOW this does not make a sense for golang, much easier
-   is to call Recv from gorutine and pass the result to channel
+1. Examples
+2. Options
+    - right now there are `Zyre.SetVerbose` and `SetVerbose` methods, maybe keep booth
+    - move gossip configuration to extra code
+      NewGossip(name, endpoint, bind, connect)
 
 # Install
 ## Dependencies
@@ -59,7 +43,10 @@ func main() {
 	flag.StringVar(&name, "name", "", "node name")
 	flag.Parse()
 
-	node := zyre.New(name)
+	node := zyre.New(
+        name,
+        zyre.SetHeader("foo", "bar"),
+        )
 	err := node.Start()
 	if err != nil {
 		panic(err)
@@ -71,8 +58,22 @@ func main() {
 	for i := 0; i != 10; i++ {
 		node.Shouts(Group, "Hello from %s", name)
 		time.Sleep(250 * time.Millisecond)
-		//TODO: fix the recv problem!!!
-		//C._zyre_print(node.ptr)
+
+		m, err := node.Recv()
+		if err != nil {
+			fmt.Printf("err=%s\n", err.Error())
+		} else {
+			switch m.(type) {
+			case Shout:
+				m := m.(Shout)
+				fmt.Printf("%T{Peer:\"%s\", Name:\"%s\", Group:\"%s\", Message: []byte{\"%s\"}}\n", m, m.Peer, m.Name, m.Group, string(m.Message[0]))
+			case Whisper:
+				m := m.(Whisper)
+				fmt.Printf("%T{Peer:\"%s\", Name:\"%s\", Message: []byte{\"%s\"}}\n", m, m.Peer, m.Name, string(m.Message[0]))
+			default:
+				fmt.Printf("%#+v\n", m)
+			}
+		}
 	}
 
 	defer node.Destroy()

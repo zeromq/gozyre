@@ -22,6 +22,55 @@ import (
     "unsafe"
 )
 
+// Enter - new peer has entered the network
+type Enter struct {
+	Peer     string
+	Name     string
+	Headers  map[string]string
+	Endpoint string
+}
+
+// Evasive - peer is being evasive (quiet for too long)
+type Evasive struct {
+	Peer string
+	Name string
+}
+
+// Exit - peer has left the network
+type Exit struct {
+	Peer string
+	Name string
+}
+
+// Join - peer has joined a specific group
+type Join struct {
+	Peer  string
+	Name  string
+	Group string
+}
+
+// Leave - peer has left a specific group
+type Leave struct {
+	Peer  string
+	Name  string
+	Group string
+}
+
+// Whisper -  peer has sent this node a message
+type Whisper struct {
+	Peer    string
+	Name    string
+	Message [][]byte
+}
+
+// Shout -  a peer has sent one of our groups a message
+type Shout struct {
+	Peer    string
+	Name    string
+	Group   string
+	Message [][]byte
+}
+
 func recvEnter(msg *C.zmsg_t) (m Enter, err error) {
     cpeer := C.zmsg_popstr(msg)
     if cpeer == nil {
