@@ -6,9 +6,6 @@ package zyre
 
 //#cgo pkg-config: libzyre
 //#include<zyre.h>
-//void _zyre_set_header(zyre_t *self, const char *group, const char *value) {
-//	zyre_set_header(self, group, value);
-//}
 //int _zyre_set_endpoint(zyre_t *self, const char *e) {
 //  return zyre_set_endpoint(self, e);
 //}
@@ -34,7 +31,6 @@ import "C"
 
 import (
 	"fmt"
-	"time"
 	"unsafe"
 )
 
@@ -45,65 +41,24 @@ type Zyre struct {
 	name string
 }
 
-// Enter - new peer has entered the network
-type Enter struct {
-	Peer     string
-	Name     string
-	Headers  map[string]string
-	Endpoint string
-}
-
-// Evasive - peer is being evasive (quiet for too long)
-type Evasive struct {
-	Peer string
-	Name string
-}
-
-// Exit - peer has left the network
-type Exit struct {
-	Peer string
-	Name string
-}
-
-// Join - peer has joined a specific group
-type Join struct {
-	Peer  string
-	Name  string
-	Group string
-}
-
-// Leave - peer has left a specific group
-type Leave struct {
-	Peer  string
-	Name  string
-	Group string
-}
-
-// Whisper -  peer has sent this node a message
-type Whisper struct {
-	Peer    string
-	Name    string
-	Message [][]byte
-}
-
-// Shout -  a peer has sent one of our groups a message
-type Shout struct {
-	Peer    string
-	Name    string
-	Group   string
-	Message [][]byte
-}
-
 // New - creates a new Zyre node. Note that until you start the
 // node it is silent and invisible to other nodes on the network.
-func New(name string) *Zyre {
+func New(name string, options ...ZyreOption) *Zyre {
 	ptr := C.zyre_new(C.CString(name))
-	return &Zyre{
+    z := &Zyre{
 		ptr:  ptr,
 		uuid: "",
 		name: "",
 	}
+    for _, o := range options {
+        o(z)
+    }
+    return z
 }
+
+// SockOption is a type for setting options on the underlying ZeroMQ socket
+type ZyreOption func(*Zyre)
+
 
 // Destroy - destroys a Zyre node. When you destroy a node, any messages it is
 // sending or receiving will be discarded. It frees underlying C memory
@@ -135,69 +90,6 @@ func (z *Zyre) Name() string {
 		z.name = C.GoString(C.zyre_name(z.ptr))
 	}
 	return z.name
-}
-
-// SetHeader - set node header; these are provided to other nodes during
-// discovery and come in each ENTER message.
-func (z *Zyre) SetHeader(name string, format string, a ...interface{}) {
-	if z.ptr == nil {
-		panic("Zyre.SetHeader: z.ptr is null")
-	}
-	s := fmt.Sprintf(format, a...)
-	C._zyre_set_header(
-		z.ptr,
-		C.CString(name),
-		C.CString(s))
-}
-
-// SetVerbose verbose mode; this tells the node to log all traffic as well as
-// all major events.
-func (z *Zyre) SetVerbose() {
-	if z.ptr == nil {
-		panic("Zyre.SetVerbose: z.ptr is null")
-	}
-	C.zyre_set_verbose(z.ptr)
-}
-
-// SetPort - Set UDP beacon discovery port; defaults to 5670, this call overrides
-// that so you can create independent clusters on the same network, for
-// e.g. development vs. production. Has no effect after Start()
-func (z *Zyre) SetPort(port int) {
-	if z.ptr == nil {
-		panic("Zyre.SetPort: z.ptr is null")
-	}
-	C.zyre_set_port(z.ptr, C.int(port))
-}
-
-// SetEvasiveTimeout - Set the peer evasiveness timeout, Default is 5000
-// millisecond.  This can be tuned in order to deal with expected network
-// conditions and the response time expected by the application. This is tied
-// to the beacon interval and rate of messages received.
-func (z *Zyre) SetEvasiveTimeout(interval time.Duration) {
-	if z.ptr == nil {
-		panic("Zyre.SetEvasiveTimeout: z.ptr is null")
-	}
-	C.zyre_set_evasive_timeout(z.ptr, C.int(interval.Nanoseconds()/1000000))
-}
-
-// SetExpiredTimeout - Set the peer expiration timeout, default is 30000 milliseconds.
-// This can be tuned in order to deal with expected network
-// conditions and the response time expected by the application. This is tied
-// to the beacon interval and rate of messages received.
-func (z *Zyre) SetExpiredTimeout(interval time.Duration) {
-	if z.ptr == nil {
-		panic("Zyre.SetExpiredTimeout: z.ptr is null")
-	}
-	C.zyre_set_expired_timeout(z.ptr, C.int(interval.Nanoseconds()/1000000))
-}
-
-// SetInterval - Set UDP beacon discovery interval, in milliseconds. Default
-// is instant beacon exploration followed by pinging every 1,000 msecs.
-func (z *Zyre) SetInterval(interval time.Duration) {
-	if z.ptr == nil {
-		panic("Zyre.SetInterval: z.ptr is null")
-	}
-	C.zyre_set_interval(z.ptr, C.size_t(interval.Nanoseconds()/1000000))
 }
 
 // SetEndpoint - By default, Zyre binds to an ephemeral TCP port and broadcasts the local
