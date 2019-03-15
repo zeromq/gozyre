@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/gomoni/gozyre.svg?style=svg)](https://circleci.com/gh/gomoni/gozyre)
+
 # Introduction
 A golang interface to the [Zyre v2.0](http://github.com/zeromq/zyre) API.
 
