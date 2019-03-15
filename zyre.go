@@ -228,15 +228,45 @@ func (z *Zyre) Recv() (m interface{}, err error) {
 	}
 }
 
-// Whispers - sends formatted string to a single peer specified as UUID string
-func (z *Zyre) Whispers(group string, format string, a ...interface{}) error {
+// Whisper - sends byte slice to a single peer specified as UUID string
+func (z *Zyre) Whisper(peer string, data ...[]byte) error {
+	if z.ptr == nil {
+		panic("Zyre.Whisper: z.ptr is null")
+	}
+    msg := C.zmsg_new();
+    if msg == nil {
+        return fmt.Errorf("Zyre.Whisper: can't create zmsg_t")
+    }
+    // we do not defer as zmsg_t will get destroyed ...
+    for _, d := range data {
+        rc := C.zmsg_addmem(
+            msg,
+            C.CBytes(d),
+            C.size_t(len(data)))
+        if rc == -1 {
+            C.zmsg_destroy(&msg)
+            return fmt.Errorf("Zyre.Whisper: can't add memory buffer")
+        }
+    }
+    rc := C.zyre_whisper(
+		z.ptr,
+		C.CString(peer),
+		&msg)           // .... <- HERE
+	if rc == -1 {
+		return fmt.Errorf("Zyre.Whispers failed, returned -1")
+	}
+	return nil
+}
+
+// WhisperString - sends formatted string to a single peer specified as UUID string
+func (z *Zyre) WhisperString(peer string, format string, a ...interface{}) error {
 	if z.ptr == nil {
 		panic("Zyre.Whispers: z.ptr is null")
 	}
 	s := fmt.Sprintf(format, a...)
 	rc := C._zyre_whispers(
 		z.ptr,
-		C.CString(group),
+		C.CString(peer),
 		C.CString(s))
 	if rc == -1 {
 		return fmt.Errorf("Zyre.Whispers failed, returned -1")
@@ -244,8 +274,38 @@ func (z *Zyre) Whispers(group string, format string, a ...interface{}) error {
 	return nil
 }
 
-// Shouts - Send formatted string to a named group
-func (z *Zyre) Shouts(group string, format string, a ...interface{}) error {
+// Shout - sends byte slice to a single peer specified as UUID string
+func (z *Zyre) Shout(group string, data ...[]byte) error {
+	if z.ptr == nil {
+		panic("Zyre.Shout: z.ptr is null")
+	}
+    msg := C.zmsg_new();
+    if msg == nil {
+        return fmt.Errorf("Zyre.Shout: can't create zmsg_t")
+    }
+    // we do not defer as zmsg_t will get destroyed ...
+    for _, d := range data {
+        rc := C.zmsg_addmem(
+            msg,
+            C.CBytes(d),
+            C.size_t(len(data)))
+        if rc == -1 {
+            C.zmsg_destroy(&msg)
+            return fmt.Errorf("Zyre.Whisper: can't add memory buffer")
+        }
+    }
+    rc := C.zyre_shout(
+		z.ptr,
+		C.CString(group),
+		&msg)           // ... <- HERE
+	if rc == -1 {
+		return fmt.Errorf("Zyre.Shout failed, returned -1")
+	}
+	return nil
+}
+
+// ShoutString - Send formatted string to a named group
+func (z *Zyre) ShoutString(group string, format string, a ...interface{}) error {
 	if z.ptr == nil {
 		panic("Zyre.Shouts: z.ptr is null")
 	}

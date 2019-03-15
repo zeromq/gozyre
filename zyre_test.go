@@ -46,8 +46,8 @@ func TestZyre(t *testing.T) {
 	time.Sleep(250 * time.Millisecond)
 
 	for i := 0; i != 5; i++ {
-		node.Shouts("GROUP", "%d#: SHOUT hello from %s", i, "node")
-		node.Whispers(node2.UUID(), "%d#: WHISPER from %s", i, "node")
+		node.ShoutString("GROUP", "%d#: SHOUT hello from %s", i, "node")
+		node.Whisper(node2.UUID(), []byte(fmt.Sprintf("%d#: WHISPER from %s", i, "node")))
 	}
 	node.Leave("GROUP")
 
