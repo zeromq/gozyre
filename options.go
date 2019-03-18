@@ -12,8 +12,8 @@ package zyre
 import "C"
 
 import (
-    "fmt"
-    "time"
+	"fmt"
+	"time"
 )
 
 // SetHeader - set node header; these are provided to other nodes during
@@ -29,10 +29,10 @@ func (z *Zyre) SetHeader(name string, format string, a ...interface{}) {
 		C.CString(s))
 }
 
-func SetHeader(name string, format string, a ...interface{}) ZyreOption {
-    return func(z *Zyre) {
-        z.SetHeader(name, format, a...)
-    }
+func SetHeader(name string, format string, a ...interface{}) Option {
+	return func(z *Zyre) {
+		z.SetHeader(name, format, a...)
+	}
 }
 
 // SetVerbose verbose mode; this tells the node to log all traffic as well as
@@ -44,11 +44,10 @@ func (z *Zyre) SetVerbose() {
 	C.zyre_set_verbose(z.ptr)
 }
 
-
-func SetVerbose() ZyreOption {
-    return func(z *Zyre) {
-        z.SetVerbose()
-    }
+func SetVerbose() Option {
+	return func(z *Zyre) {
+		z.SetVerbose()
+	}
 }
 
 // SetPort - Set UDP beacon discovery port; defaults to 5670, this call overrides
@@ -61,11 +60,10 @@ func (z *Zyre) SetPort(port int) {
 	C.zyre_set_port(z.ptr, C.int(port))
 }
 
-
-func SetPort(port int) ZyreOption {
-    return func(z *Zyre) {
-        z.SetPort(port)
-    }
+func SetPort(port int) Option {
+	return func(z *Zyre) {
+		z.SetPort(port)
+	}
 }
 
 // SetEvasiveTimeout - Set the peer evasiveness timeout, Default is 5000
@@ -79,10 +77,10 @@ func (z *Zyre) SetEvasiveTimeout(interval time.Duration) {
 	C.zyre_set_evasive_timeout(z.ptr, C.int(interval.Nanoseconds()/1000000))
 }
 
-func SetEvasiveTimeout(interval time.Duration) ZyreOption {
-    return func(z *Zyre) {
-        z.SetEvasiveTimeout(interval)
-    }
+func SetEvasiveTimeout(interval time.Duration) Option {
+	return func(z *Zyre) {
+		z.SetEvasiveTimeout(interval)
+	}
 }
 
 // SetExpiredTimeout - Set the peer expiration timeout, default is 30000 milliseconds.
@@ -96,11 +94,10 @@ func (z *Zyre) SetExpiredTimeout(interval time.Duration) {
 	C.zyre_set_expired_timeout(z.ptr, C.int(interval.Nanoseconds()/1000000))
 }
 
-
-func SetExpiredTimeout(interval time.Duration) ZyreOption {
-    return func(z *Zyre) {
-        z.SetExpiredTimeout(interval)
-    }
+func SetExpiredTimeout(interval time.Duration) Option {
+	return func(z *Zyre) {
+		z.SetExpiredTimeout(interval)
+	}
 }
 
 // SetInterval - Set UDP beacon discovery interval, in milliseconds. Default
@@ -112,8 +109,24 @@ func (z *Zyre) SetInterval(interval time.Duration) {
 	C.zyre_set_interval(z.ptr, C.size_t(interval.Nanoseconds()/1000000))
 }
 
-func SetInterval(interval time.Duration) ZyreOption {
-    return func(z *Zyre) {
-        z.SetInterval(interval)
-    }
+func SetInterval(interval time.Duration) Option {
+	return func(z *Zyre) {
+		z.SetInterval(interval)
+	}
+}
+
+// SetInterval - Set network interface for UDP beacons. If you do not set this,
+// CZMQ will choose an interface for you. On boxes with several interfaces you
+// should specify which one you want to use, or strange things can happen.
+func (z *Zyre) SetInterface(value string) {
+	if z.ptr == nil {
+		panic("Zyre.SetInterface: z.ptr is null")
+	}
+	C.zyre_set_interface(z.ptr, C.CString(value))
+}
+
+func SetInterface(value string) Option {
+	return func(z *Zyre) {
+		z.SetInterface(value)
+	}
 }

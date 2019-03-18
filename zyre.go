@@ -43,22 +43,21 @@ type Zyre struct {
 
 // New - creates a new Zyre node. Note that until you start the
 // node it is silent and invisible to other nodes on the network.
-func New(name string, options ...ZyreOption) *Zyre {
+func New(name string, options ...Option) *Zyre {
 	ptr := C.zyre_new(C.CString(name))
-    z := &Zyre{
+	z := &Zyre{
 		ptr:  ptr,
 		uuid: "",
 		name: "",
 	}
-    for _, o := range options {
-        o(z)
-    }
-    return z
+	for _, o := range options {
+		o(z)
+	}
+	return z
 }
 
-// SockOption is a type for setting options on the underlying ZeroMQ socket
-type ZyreOption func(*Zyre)
-
+// Option is a type for setting up the underlying Zyre actor
+type Option func(*Zyre)
 
 // Destroy - destroys a Zyre node. When you destroy a node, any messages it is
 // sending or receiving will be discarded. It frees underlying C memory
@@ -233,25 +232,25 @@ func (z *Zyre) Whisper(peer string, data ...[]byte) error {
 	if z.ptr == nil {
 		panic("Zyre.Whisper: z.ptr is null")
 	}
-    msg := C.zmsg_new();
-    if msg == nil {
-        return fmt.Errorf("Zyre.Whisper: can't create zmsg_t")
-    }
-    // we do not defer as zmsg_t will get destroyed ...
-    for _, d := range data {
-        rc := C.zmsg_addmem(
-            msg,
-            C.CBytes(d),
-            C.size_t(len(data)))
-        if rc == -1 {
-            C.zmsg_destroy(&msg)
-            return fmt.Errorf("Zyre.Whisper: can't add memory buffer")
-        }
-    }
-    rc := C.zyre_whisper(
+	msg := C.zmsg_new()
+	if msg == nil {
+		return fmt.Errorf("Zyre.Whisper: can't create zmsg_t")
+	}
+	// we do not defer as zmsg_t will get destroyed ...
+	for _, d := range data {
+		rc := C.zmsg_addmem(
+			msg,
+			C.CBytes(d),
+			C.size_t(len(data)))
+		if rc == -1 {
+			C.zmsg_destroy(&msg)
+			return fmt.Errorf("Zyre.Whisper: can't add memory buffer")
+		}
+	}
+	rc := C.zyre_whisper(
 		z.ptr,
 		C.CString(peer),
-		&msg)           // .... <- HERE
+		&msg) // .... <- HERE
 	if rc == -1 {
 		return fmt.Errorf("Zyre.Whispers failed, returned -1")
 	}
@@ -279,25 +278,25 @@ func (z *Zyre) Shout(group string, data ...[]byte) error {
 	if z.ptr == nil {
 		panic("Zyre.Shout: z.ptr is null")
 	}
-    msg := C.zmsg_new();
-    if msg == nil {
-        return fmt.Errorf("Zyre.Shout: can't create zmsg_t")
-    }
-    // we do not defer as zmsg_t will get destroyed ...
-    for _, d := range data {
-        rc := C.zmsg_addmem(
-            msg,
-            C.CBytes(d),
-            C.size_t(len(data)))
-        if rc == -1 {
-            C.zmsg_destroy(&msg)
-            return fmt.Errorf("Zyre.Whisper: can't add memory buffer")
-        }
-    }
-    rc := C.zyre_shout(
+	msg := C.zmsg_new()
+	if msg == nil {
+		return fmt.Errorf("Zyre.Shout: can't create zmsg_t")
+	}
+	// we do not defer as zmsg_t will get destroyed ...
+	for _, d := range data {
+		rc := C.zmsg_addmem(
+			msg,
+			C.CBytes(d),
+			C.size_t(len(data)))
+		if rc == -1 {
+			C.zmsg_destroy(&msg)
+			return fmt.Errorf("Zyre.Whisper: can't add memory buffer")
+		}
+	}
+	rc := C.zyre_shout(
 		z.ptr,
 		C.CString(group),
-		&msg)           // ... <- HERE
+		&msg) // ... <- HERE
 	if rc == -1 {
 		return fmt.Errorf("Zyre.Shout failed, returned -1")
 	}

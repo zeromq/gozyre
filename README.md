@@ -1,15 +1,20 @@
 [![CircleCI](https://circleci.com/gh/gomoni/gozyre.svg?style=svg)](https://circleci.com/gh/gomoni/gozyre)[![license](https://img.shields.io/badge/license-MPL-2.0.svg?style=flat)](https://raw.githubusercontent.com/gomoni/gozyre/master/LICENSE)
 
 # Introduction
-A golang interface to the [Zyre v2.0](http://github.com/zeromq/zyre) API.
+A golang interface to the [Zyre v2.0](http://github.com/zeromq/zyre) API. Wraps
+most of the API methods to idiomatic Go.
 
-# Status
+## About Zyre
+Zyre is a frameworkd for peer to peer networks written in ZeroMQ
 
-1. Examples
-2. Options
-    - right now there are `Zyre.SetVerbose` and `SetVerbose` methods, maybe keep booth
-    - move gossip configuration to extra code
-      NewGossip(name, endpoint, bind, connect)
+Typical use cases for Zyre are:
+
+ * Local service discovery.
+ * Clustering of a set of services on the same Ethernet network.
+ * Controlling a network of smart devices (Internet of Things).
+ * Multi-user mobile applications (like smart classrooms).
+
+ Check [Zyre Github page](http://github.com/zeromq/zyre)
 
 # Install
 ## Dependencies
@@ -20,7 +25,7 @@ A golang interface to the [Zyre v2.0](http://github.com/zeromq/zyre) API.
 
 ## For GoZyre master
 ```
-go get github.com/gomoni/gozyre
+import "github.com/gomoni/gozyre"
 ```
 
 # Example
@@ -47,6 +52,7 @@ func main() {
         name,
         zyre.SetHeader("foo", "bar"),
         )
+	defer node.Destroy()
 	err := node.Start()
 	if err != nil {
 		panic(err)
@@ -76,10 +82,24 @@ func main() {
 		}
 	}
 
-	defer node.Destroy()
 	node.Stop()
 }
 ```
 
+# Note on panic
+
+`gozyre` panics only when user try to operate on destroyed node
+
+```go
+node := zyre.New()
+...
+node.Destroy()
+node.Shout(...) <- panic
+```
+
+This is violation of API contract and SHALL not be done.
+
 # License
-This project uses the MPL v2 license, see LICENSE
+This project uses the MPL v2 license, see LICENSE.
+
+It uses [Collective Code Construction Contract](https://rfc.zeromq.org/spec:42/C4/) for contributing, see CONTRIBUTING.md.
