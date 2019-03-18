@@ -7,7 +7,7 @@ package zyre
 import (
 	"fmt"
 	"testing"
-    "time"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -17,14 +17,14 @@ func TestZyre(t *testing.T) {
 	assert := assert.New(t)
 
 	node := New(
-        "node",
-        SetHeader("Service", "name"),
-    )
+		"node",
+		SetHeader("Service", "name"),
+	)
 	defer node.Destroy()
 	node2 := New(
-        "node2",
-        SetPort(5670),
-    )
+		"node2",
+		SetPort(5670),
+	)
 	defer node2.Destroy()
 	if testing.Verbose() {
 		node.SetVerbose()
