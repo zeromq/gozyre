@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/gomoni/gozyre.svg?style=svg)](https://circleci.com/gh/gomoni/gozyre)[![license](https://img.shields.io/badge/license-MPL-2.0.svg?style=flat)](https://raw.githubusercontent.com/gomoni/gozyre/master/LICENSE)
+[![CircleCI](https://circleci.com/gh/zeromq/gozyre.svg?style=svg)](https://circleci.com/gh/zeromq/gozyre) [![license](https://img.shields.io/badge/license-MPL-2.0.svg?style=flat)](https://raw.githubusercontent.com/zeromq/gozyre/master/LICENSE)
 
 # Introduction
 A golang interface to the [Zyre v2.0](http://github.com/zeromq/zyre) API. Wraps
@@ -25,7 +25,7 @@ Typical use cases for Zyre are:
 
 ## For GoZyre master
 ```
-import "github.com/gomoni/gozyre"
+import "github.com/zeromq/gozyre"
 ```
 
 # Example
@@ -36,7 +36,7 @@ import (
 	"flag"
 	"time"
 
-	zyre "github.com/gomoni/gozyre"
+	zyre "github.com/zeromq/gozyre"
 )
 
 const (
