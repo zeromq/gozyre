@@ -53,8 +53,8 @@ func TestZyre(t *testing.T) {
 
 	fmt.Printf("node.Peers=%#v\n", node.Peers())
 	fmt.Printf("node2.Peers=%#v\n", node2.Peers())
-	a, err := node.PeerAddress(node2.UUID())
-	assert.NoError(err)
+	a, ok := node.PeerAddress(node2.UUID())
+	assert.True(ok)
 	fmt.Printf("node.PeerAddress(node2)=%#v\n", a)
 
 	for i := 0; i != 8+5; i++ {
