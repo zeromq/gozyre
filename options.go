@@ -18,9 +18,9 @@ import (
 
 // SetHeader - set node header; these are provided to other nodes during
 // discovery and come in each ENTER message.
-func (z *Zyre) SetHeader(name string, format string, a ...interface{}) {
+func (z *Node) SetHeader(name string, format string, a ...interface{}) {
 	if z.ptr == nil {
-		panic("Zyre.SetHeader: z.ptr is null")
+		panic("Node.SetHeader: z.ptr is null")
 	}
 	s := fmt.Sprintf(format, a...)
 	C._zyre_set_header(
@@ -30,22 +30,22 @@ func (z *Zyre) SetHeader(name string, format string, a ...interface{}) {
 }
 
 func SetHeader(name string, format string, a ...interface{}) Option {
-	return func(z *Zyre) {
+	return func(z *Node) {
 		z.SetHeader(name, format, a...)
 	}
 }
 
 // SetVerbose verbose mode; this tells the node to log all traffic as well as
 // all major events.
-func (z *Zyre) SetVerbose() {
+func (z *Node) SetVerbose() {
 	if z.ptr == nil {
-		panic("Zyre.SetVerbose: z.ptr is null")
+		panic("Node.SetVerbose: z.ptr is null")
 	}
 	C.zyre_set_verbose(z.ptr)
 }
 
 func SetVerbose() Option {
-	return func(z *Zyre) {
+	return func(z *Node) {
 		z.SetVerbose()
 	}
 }
@@ -53,15 +53,15 @@ func SetVerbose() Option {
 // SetPort - Set UDP beacon discovery port; defaults to 5670, this call overrides
 // that so you can create independent clusters on the same network, for
 // e.g. development vs. production. Has no effect after Start()
-func (z *Zyre) SetPort(port int) {
+func (z *Node) SetPort(port int) {
 	if z.ptr == nil {
-		panic("Zyre.SetPort: z.ptr is null")
+		panic("Node.SetPort: z.ptr is null")
 	}
 	C.zyre_set_port(z.ptr, C.int(port))
 }
 
 func SetPort(port int) Option {
-	return func(z *Zyre) {
+	return func(z *Node) {
 		z.SetPort(port)
 	}
 }
@@ -70,15 +70,15 @@ func SetPort(port int) Option {
 // millisecond.  This can be tuned in order to deal with expected network
 // conditions and the response time expected by the application. This is tied
 // to the beacon interval and rate of messages received.
-func (z *Zyre) SetEvasiveTimeout(interval time.Duration) {
+func (z *Node) SetEvasiveTimeout(interval time.Duration) {
 	if z.ptr == nil {
-		panic("Zyre.SetEvasiveTimeout: z.ptr is null")
+		panic("Node.SetEvasiveTimeout: z.ptr is null")
 	}
 	C.zyre_set_evasive_timeout(z.ptr, C.int(interval.Nanoseconds()/1000000))
 }
 
 func SetEvasiveTimeout(interval time.Duration) Option {
-	return func(z *Zyre) {
+	return func(z *Node) {
 		z.SetEvasiveTimeout(interval)
 	}
 }
@@ -87,30 +87,30 @@ func SetEvasiveTimeout(interval time.Duration) Option {
 // This can be tuned in order to deal with expected network
 // conditions and the response time expected by the application. This is tied
 // to the beacon interval and rate of messages received.
-func (z *Zyre) SetExpiredTimeout(interval time.Duration) {
+func (z *Node) SetExpiredTimeout(interval time.Duration) {
 	if z.ptr == nil {
-		panic("Zyre.SetExpiredTimeout: z.ptr is null")
+		panic("Node.SetExpiredTimeout: z.ptr is null")
 	}
 	C.zyre_set_expired_timeout(z.ptr, C.int(interval.Nanoseconds()/1000000))
 }
 
 func SetExpiredTimeout(interval time.Duration) Option {
-	return func(z *Zyre) {
+	return func(z *Node) {
 		z.SetExpiredTimeout(interval)
 	}
 }
 
 // SetInterval - Set UDP beacon discovery interval, in milliseconds. Default
 // is instant beacon exploration followed by pinging every 1,000 msecs.
-func (z *Zyre) SetInterval(interval time.Duration) {
+func (z *Node) SetInterval(interval time.Duration) {
 	if z.ptr == nil {
-		panic("Zyre.SetInterval: z.ptr is null")
+		panic("Node.SetInterval: z.ptr is null")
 	}
 	C.zyre_set_interval(z.ptr, C.size_t(interval.Nanoseconds()/1000000))
 }
 
 func SetInterval(interval time.Duration) Option {
-	return func(z *Zyre) {
+	return func(z *Node) {
 		z.SetInterval(interval)
 	}
 }
@@ -118,15 +118,15 @@ func SetInterval(interval time.Duration) Option {
 // SetInterval - Set network interface for UDP beacons. If you do not set this,
 // CZMQ will choose an interface for you. On boxes with several interfaces you
 // should specify which one you want to use, or strange things can happen.
-func (z *Zyre) SetInterface(value string) {
+func (z *Node) SetInterface(value string) {
 	if z.ptr == nil {
-		panic("Zyre.SetInterface: z.ptr is null")
+		panic("Node.SetInterface: z.ptr is null")
 	}
 	C.zyre_set_interface(z.ptr, C.CString(value))
 }
 
 func SetInterface(value string) Option {
-	return func(z *Zyre) {
+	return func(z *Node) {
 		z.SetInterface(value)
 	}
 }
