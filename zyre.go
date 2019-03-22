@@ -221,6 +221,8 @@ func (z *Zyre) Recv() (m interface{}, err error) {
 		return recvWhisper(msg)
 	case "SHOUT":
 		return recvShout(msg)
+    case "STOP":
+        return recvStop(msg)
 	default:
 		err = fmt.Errorf("ZyreRecv: uknown event '%s'", event)
 		return

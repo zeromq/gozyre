@@ -71,6 +71,13 @@ type Shout struct {
 	Message [][]byte
 }
 
+// Stop - peer was stopped
+type Stop struct {
+	Peer string
+	Name string
+}
+
+
 func recvEnter(msg *C.zmsg_t) (m Enter, err error) {
 	cpeer := C.zmsg_popstr(msg)
 	if cpeer == nil {
@@ -320,6 +327,30 @@ func recvShout(msg *C.zmsg_t) (m Shout, err error) {
 		Name:    name,
 		Group:   group,
 		Message: message,
+	}
+	return
+}
+
+func recvStop(msg *C.zmsg_t) (m Stop, err error) {
+	cpeer := C.zmsg_popstr(msg)
+	if cpeer == nil {
+		err = fmt.Errorf("Zyre.Recv: STOP got nil peer")
+		return
+	}
+	peer := C.GoString(cpeer)
+	defer C.free(unsafe.Pointer(cpeer))
+
+	cname := C.zmsg_popstr(msg)
+	if cname == nil {
+		err = fmt.Errorf("Zyre.Recv: STOP got nil name")
+		return
+	}
+	name := C.GoString(cname)
+	defer C.free(unsafe.Pointer(cname))
+
+	m = Stop{
+		Peer:    peer,
+		Name:    name,
 	}
 	return
 }
