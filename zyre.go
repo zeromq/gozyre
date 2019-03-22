@@ -30,18 +30,36 @@ package zyre
 import "C"
 
 import (
+	"errors"
 	"fmt"
 	"unsafe"
 )
 
-// Node - opaque Golang struct wrapping `zyre_t*`
+var (
+	// ErrStart is returned when node fails to start
+	ErrStart = errors.New("zyre_start returned -1")
+
+	// ErrJoin is returned when node fails to join the group
+	ErrJoin = errors.New("zyre_join returned -1")
+
+	// ErrLeave is returned when node fails to leave the group
+	ErrLeave = errors.New("zyre_leave returned -1")
+
+	// ErrRecvNil is returned when recv got nil pointer
+	ErrRecvNil = errors.New("zyre_recv got nil")
+
+	// ErrRecvNilEvent is returned when recv got nil pointer
+	ErrRecvNilEvent = errors.New("zyre_recv got nil event")
+)
+
+// Node is opaque Golang struct wrapping `zyre_t*`
 type Node struct {
 	ptr  *C.zyre_t
 	uuid string
 	name string
 }
 
-// New - creates a new zyre.Node. Note that until you Start the
+// New creates a new zyre.Node. Note that until you Start the
 // node it is silent and invisible to other nodes on the network.
 func New(name string, options ...Option) *Node {
 	ptr := C.zyre_new(C.CString(name))
@@ -143,7 +161,7 @@ func (z *Node) Start() error {
 	}
 	rc := C.zyre_start(z.ptr)
 	if rc == -1 {
-		return fmt.Errorf("Node.Start failed, returned -1")
+		return ErrStart
 	}
 	return nil
 }
@@ -166,7 +184,7 @@ func (z *Node) Join(room string) error {
 	}
 	rc := C.zyre_join(z.ptr, C.CString(room))
 	if rc == -1 {
-		return fmt.Errorf("Node.Join failed, returned -1")
+		return ErrJoin
 	}
 	return nil
 }
@@ -178,7 +196,7 @@ func (z *Node) Leave(room string) error {
 	}
 	rc := C.zyre_leave(z.ptr, C.CString(room))
 	if rc == -1 {
-		return fmt.Errorf("Node.Leave failed, returned -1")
+		return ErrLeave
 	}
 	return nil
 }
@@ -193,14 +211,14 @@ func (z *Node) Recv() (m interface{}, err error) {
 	}
 	msg := C.zyre_recv(z.ptr)
 	if msg == nil {
-		err = fmt.Errorf("Node.Recv: got nil")
+		err = ErrRecvNil
 		return
 	}
 	defer C.zmsg_destroy(&msg)
 
 	cevent := C.zmsg_popstr(msg)
 	if cevent == nil {
-		err = fmt.Errorf("Node.Recv: got nil event")
+		err = ErrRecvNilEvent
 		return
 	}
 	event := C.GoString(cevent)
@@ -221,8 +239,8 @@ func (z *Node) Recv() (m interface{}, err error) {
 		return recvWhisper(msg)
 	case "SHOUT":
 		return recvShout(msg)
-    case "STOP":
-        return recvStop(msg)
+	case "STOP":
+		return recvStop(msg)
 	default:
 		err = fmt.Errorf("NodeRecv: uknown event '%s'", event)
 		return
@@ -368,17 +386,19 @@ func (z *Node) PeerGroups() []string {
 	return zlistTosliceAndDestroy(cpeers)
 }
 
-// PeerAddress - return the endpoint of a connected peer or error if not found
-func (z *Node) PeerAddress(peer string) (address string, err error) {
+// PeerAddress - return the endpoint of a connected peer or false if not found
+func (z *Node) PeerAddress(peer string) (address string, ok bool) {
 	if z.ptr == nil {
 		panic("Node.PeerAddress: z.ptr is null")
 	}
 	caddress := C.zyre_peer_address(z.ptr, C.CString(peer))
 	if caddress == nil {
-		err = fmt.Errorf("Node.PeerAddress: can't find address of peer %s", peer)
+		ok = false
+		return
 	}
 	defer C.free(unsafe.Pointer(caddress))
 	address = C.GoString(caddress)
+	ok = true
 	return
 }
 
