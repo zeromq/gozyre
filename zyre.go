@@ -74,6 +74,21 @@ func New(name string, options ...Option) *Node {
 	return z
 }
 
+// New creates a new zyre.Node with unique name. Note that until you Start the
+// node it is silent and invisible to other nodes on the network.
+func NewUnique(options ...Option) *Node {
+	ptr := C.zyre_new(nil)
+	z := &Node{
+		ptr:  ptr,
+		uuid: "",
+		name: "",
+	}
+	for _, o := range options {
+		o(z)
+	}
+	return z
+}
+
 // Option is a type for setting up the underlying Zyre actor
 type Option func(*Node)
 
