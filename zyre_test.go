@@ -21,8 +21,7 @@ func TestZyre(t *testing.T) {
 		SetHeader("Service", "name"),
 	)
 	defer node.Destroy()
-	node2 := New(
-		"node2",
+	node2 := NewUnique(
 		SetPort(5670),
 	)
 	defer node2.Destroy()
