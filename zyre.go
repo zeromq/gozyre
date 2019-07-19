@@ -4,6 +4,8 @@
 
 package zyre
 
+//#cgo pkg-config: libzmq
+//#cgo pkg-config: libczmq
 //#cgo pkg-config: libzyre
 //#include<zyre.h>
 //int _zyre_set_endpoint(zyre_t *self, const char *e) {
