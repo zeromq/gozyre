@@ -19,6 +19,8 @@ jobs: # basic units of work in a run
           name: Add C dependencies
           command: |
             sudo sed -e '$s,$,\ndeb http://download.opensuse.org/repositories/network:/messaging:/zeromq:/release-stable/Debian_9.0/ ./,' -i /etc/apt/sources.list
+            sudo curl 'http://download.opensuse.org/repositories/network:/messaging:/zeromq:/release-stable/Debian_9.0/Release.key' > Release.key
+            sudo apt-key add - < Release.key
             sudo apt-get update
             sudo apt-get install --allow-unauthenticated libzyre-dev
 
