@@ -18,11 +18,11 @@ jobs: # basic units of work in a run
         #TODO: create own Docker container under hub.docker.com/zeromq/
           name: Add C dependencies
           command: |
-            sudo sed -e '$s,$,\ndeb http://download.opensuse.org/repositories/network:/messaging:/zeromq:/release-stable/Debian_9.0/ ./,' -i /etc/apt/sources.list
-            sudo curl 'http://download.opensuse.org/repositories/network:/messaging:/zeromq:/release-stable/Debian_9.0/Release.key' > Release.key
+            sudo sed -e '$s,$,\ndeb http://download.opensuse.org/repositories/network:/messaging:/zeromq:/release-stable/Debian_10/ ./,' -i /etc/apt/sources.list
+            sudo curl 'http://download.opensuse.org/repositories/network:/messaging:/zeromq:/release-stable/Debian_10/Release.key' > Release.key
             sudo apt-key add - < Release.key
             sudo apt-get update
-            sudo apt-get install --allow-unauthenticated libzyre-dev
+            sudo apt-get install libzyre-dev libzmq3-dev libczmq-dev libzyre2 libczmq4 libzmq5
 
       - run: mkdir -p $TEST_RESULTS # create the test results directory
 
