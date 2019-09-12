@@ -2,6 +2,8 @@
 
 package zyre
 
+//#cgo pkg-config: libzyre
+//#include<zyre.h>
 import (
     "C"
 )
